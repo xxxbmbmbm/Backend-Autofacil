@@ -1,0 +1,74 @@
+# Levanta MySQL y los 4 microservicios. Igual que la guía del curso: en EC2 se ejecuta
+#   cp .env.example .env   (y editar claves)
+#   docker compose up --build -d
+x-microservicio: &microservicio
+  restart: unless-stopped
+  depends_on:
+    mysql:
+      condition: service_healthy
+  environment: &entorno
+    DB_HOST: mysql
+    DB_USUARIO: ${DB_USUARIO:-autofacil}
+    DB_CLAVE: ${DB_CLAVE:?Falta DB_CLAVE en .env}
+    JWT_SECRETO: ${JWT_SECRETO:?Falta JWT_SECRETO en .env (openssl rand -base64 48)}
+    TZ: America/Santiago
+    # Limita la memoria de cada JVM para que los 4 servicios + MySQL quepan en una t3.medium (4 GiB)
+    JAVA_TOOL_OPTIONS: -Xms128m -Xmx320m
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_CLAVE:?Falta MYSQL_ROOT_CLAVE en .env}
+      MYSQL_USER: ${DB_USUARIO:-autofacil}
+      MYSQL_PASSWORD: ${DB_CLAVE:?Falta DB_CLAVE en .env}
+      TZ: America/Santiago
+    volumes:
+      - datos-mysql:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # Solo accesible desde la misma máquina (por ejemplo con MySQL Workbench por túnel SSH)
+    ports:
+      - "127.0.0.1:3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_CLAVE:?Falta MYSQL_ROOT_CLAVE en .env}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ms-usuarios:
+    <<: *microservicio
+    build: ./ms-usuarios
+    ports:
+      - "8081:8081"
+    environment:
+      <<: *entorno
+      ADMIN_CORREO: ${ADMIN_CORREO:-admin@autofacil.cl}
+      ADMIN_CLAVE: ${ADMIN_CLAVE:?Falta ADMIN_CLAVE en .env}
+      VENDEDOR_CORREO: ${VENDEDOR_CORREO:-vendedor@autofacil.cl}
+      VENDEDOR_CLAVE: ${VENDEDOR_CLAVE:?Falta VENDEDOR_CLAVE en .env}
+
+  ms-vehiculos:
+    <<: *microservicio
+    build: ./ms-vehiculos
+    ports:
+      - "8082:8082"
+
+  ms-ventas:
+    <<: *microservicio
+    build: ./ms-ventas
+    ports:
+      - "8083:8083"
+    environment:
+      <<: *entorno
+      # Dentro de la red de Docker, cada servicio se llama por su nombre
+      VEHICULOS_URL: http://ms-vehiculos:8082
+
+  ms-contacto:
+    <<: *microservicio
+    build: ./ms-contacto
+    ports:
+      - "8084:8084"
+
+volumes:
+  datos-mysql:
