@@ -6,12 +6,12 @@ import jakarta.validation.constraints.NotBlank;
 
 @Schema(description = "Credenciales para iniciar sesión")
 public record LoginSolicitud(
-        @Schema(example = "admin@autofacil.cl")
+        @Schema(example = "nayafacil@autofacil.cl")
         @NotBlank(message = "Ingresa tu correo.")
         @Email(message = "Ingresa un correo electrónico válido.")
         String correo,
 
-        @Schema(example = "Admin@2026")
+        @Schema(example = "********")
         @NotBlank(message = "Ingresa tu contraseña.")
         String clave
 ) {
