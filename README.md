@@ -114,12 +114,13 @@ La primera compilación tarda varios minutos. Luego Swagger queda en `http://loc
 
 ## Despliegue en AWS EC2
 
-El backend corre en una instancia EC2 del AWS Academy Learner Lab, siguiendo la [guía del curso](https://github.com/JavPenaR/react-springboot4-docker-ec2):
+El backend corre en una instancia EC2 del AWS Academy Learner Lab con la **IP elástica `34.234.168.134`**, siguiendo la [guía del curso](https://github.com/JavPenaR/react-springboot4-docker-ec2). Swagger: `http://34.234.168.134:8081/swagger-ui.html` (y 8082, 8083, 8084).
 
 1. **Instancia:** Amazon Linux 2023, x86_64, **t3.medium** (4 GiB de RAM) y 20 GiB de disco.
-2. **Grupo de seguridad:** SSH (22) y **TCP 8081-8084** solo desde las IP autorizadas. MySQL no se expone a internet.
-3. **Docker:** instalar Docker, Docker Compose y Buildx (sección 3 de la guía).
-4. **Código y configuración:**
+2. **IP elástica:** asociada a la instancia, así que la dirección no cambia al reiniciar el Learner Lab.
+3. **Grupo de seguridad:** **TCP 8081-8084** abierto a internet, porque el frontend publicado en S3 llama a la API desde el navegador de cada visitante (las rutas privadas exigen JWT). SSH (22) solo desde las IP autorizadas. MySQL no se expone a internet.
+4. **Docker:** instalar Docker, Docker Compose y Buildx (sección 3 de la guía).
+5. **Código y configuración:**
    ```bash
    cd autofacil-backend
    cp .env.example .env
@@ -128,9 +129,9 @@ El backend corre en una instancia EC2 del AWS Academy Learner Lab, siguiendo la 
    docker compose up --build -d
    docker compose ps             # mysql y los 4 ms-* en estado Up
    ```
-5. **Frontend:** en el repositorio del frontend, `.env.development.local` apunta a `http://IP_PUBLICA:8081/api/v1` (y 8082, 8083, 8084).
+6. **Frontend:** se compila apuntando a `http://34.234.168.134:8081/api/v1` (y 8082, 8083, 8084) y se publica en S3: http://autofacil-frontend-bastian-espejo.s3-website-us-east-1.amazonaws.com
 
-Los contenedores se reinician solos al encender la instancia. La IP pública cambia cada vez que se reinicia el Learner Lab: basta con actualizarla en el frontend. Para aplicar cambios de código: `docker compose up --build -d`. Para ver errores: `docker compose logs --tail=100 ms-ventas`.
+Los contenedores se reinician solos al encender la instancia. Para aplicar cambios de código: `docker compose up --build -d`. Para ver errores: `docker compose logs --tail=100 ms-ventas`.
 
 ## Pruebas
 
@@ -143,4 +144,4 @@ Set-Location .\ms-ventas
 
 ## Tecnologías
 
-Spring Boot 4.0.9 · Java 21 · Spring Data JPA · Spring Security · JJWT · springdoc-openapi (Swagger) · MySQL 8.4 · H2 (pruebas) · JaCoCo · Lombok · Docker · Docker Compose · AWS EC2
+Spring Boot 4.0.9 · Java 21 · Spring Data JPA · Spring Security · JJWT · springdoc-openapi (Swagger) · MySQL 8.4 · H2 (pruebas) · JaCoCo · Lombok · Docker · Docker Compose · AWS EC2 (IP elástica) · AWS S3 (frontend)
